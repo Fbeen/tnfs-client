@@ -23,7 +23,7 @@ The code is pretty simple and straight forwards. It consists of three c files an
 - **main.c** This is where  a demonstration is given of how to use the TNFS library.
 - **tnfs.c** This file is the actual library with all the tnfs functions available.
 - **netw.c** Consists of network functions such as creating a socket, connecting the client to the server, a send and receive function and some other things. These functions usually look a bit different on an embedded device. For this reason I have kept these functions as separate from the NTFS library as possible.
-- The **header files** tnfs.h and netw.h should be clear. These must be inserted into your project in order to use the functions in tnfs.c and netw.c respectively.
+- The **header files** tnfs.h and netw.h should be clear. These must be included into your project in order to use the functions in tnfs.c and netw.c respectively.
 
 ### Setting up a test environment 
 
