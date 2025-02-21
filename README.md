@@ -39,5 +39,5 @@ cd ~/Downloads/tnfsd
 ***~/public*** is the landing page for your clients that connects to your server. 
 You can of course change the directory names to suit your situation.
  
- 3. **Run the client**
+ 2. **Run the client**
 The client has only been tested on Ubuntu 22.04 but should work fairly easily on other operating systems. A small adjustment in netw.c may be necessary. You can compile and link the program files with gcc. The easiest way is to use build.sh or copy the second and last line of this file and paste them into your terminal.
