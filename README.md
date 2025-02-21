@@ -30,8 +30,8 @@ The code is pretty simple and straight forwards. It consists of three c files an
  1. **Setting up a test server**
  Download the tnfsd server. There are already a compiled Linux and Windows [executable](https://github.com/spectrumero/tnfsd/tree/master/bin) on the github page from spectrumero. Once downloaded, you can open a terminal window and change to the correct directory. In that directory, type in the name of the file, a space and and specify the root directory where your clients will end up. Example for Linux:
  
-> cd ~/Downloads/tnfsd
-> ./tnfsd ~/public
+> $ cd ~/Downloads/tnfsd
+> $ ./tnfsd ~/public
 
 ***~/Downloads/tnfsd*** is the directory that contains the tnfsd executable.
 ***~/public*** is the landing page for your clients that connects to your server. 
