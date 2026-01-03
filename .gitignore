@@ -1,0 +1,9 @@
+# build artifacts
+build/
+*.exe
+client
+
+# editor / OS
+*.swp
+*.log
+.DS_Store
