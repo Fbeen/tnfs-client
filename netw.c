@@ -19,7 +19,7 @@ void setTimeoutTime(int t)
 }
 
 /* sends a package */
-void netw_send(char* buffer, int length)
+void netw_send(const uint8_t* buffer, int length)
 {
     if(send(client_fd, buffer, length, 0) == -1) {
     	perror("netw_send");
@@ -27,7 +27,7 @@ void netw_send(char* buffer, int length)
 }
 
 /* Waits for a response from the server and reads the package */
-int netw_receive(char* buffer, int buffer_size)
+int netw_recv(uint8_t* buffer, int buffer_size)
 {
     int rpoll;
     int length;
@@ -50,7 +50,7 @@ int netw_receive(char* buffer, int buffer_size)
     length = read(client_fd, buffer, buffer_size);
     
     if(length == -1) {
-    	perror("netw_receive");
+    	perror("netw_recv");
     }
 
     return length;
@@ -117,7 +117,7 @@ void netw_connect(char* host, int port, bool useTCP)
         ExitError("Connection Failed");
     }
     
-    /* Initialize polling data that we will use later in the netw_receive function */ 
+    /* Initialize polling data that we will use later in the netw_recv function */ 
     pfds[0].events = POLLIN;
     pfds[0].fd = client_fd;
 }

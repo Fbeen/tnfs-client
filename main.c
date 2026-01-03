@@ -11,20 +11,35 @@ char* time2human(uint32_t timestamp, char* dest)
     return dest;
 }
 
+bool tnfs_dir_exists(char* path)
+{
+    int ret = tnfs_opendir(path);
+    
+    if(ret >= 0) {
+    	tnfs_closedir(ret);
+    }
+    
+    return ret >= 0;
+}
+
 /* start of our program. demonstrates the tnfs-client functions */
 int main(/* int argc, char const* argv[] */)
 {
-    uint8_t handle;
     char buffer[256];
-    char filename[TNFS_MAX_PATH_LEN];
     char hcreated[20];
     char hmodified[20];
-    int fh, rcode;
+    int fh;
     
     // netw_connect("tnfs.fujinet.online", TNFS_PORT, true);    
-    // netw_connect("192.168.178.119", TNFS_PORT, false);    
-    netw_connect("127.0.0.1", TNFS_PORT, false);    
-    tnfs_mount("/", "", "");
+    netw_connect("192.168.178.10", TNFS_PORT, false);    
+    // netw_connect("127.0.0.1", TNFS_PORT, false);    
+    tnfs_mount("/Atari ST", "", "");
+    
+    if(tnfs_dir_exists("/BOLO")) {
+        printf("directory exists\n");
+    } else {
+        printf("directory does NOT exist\n");
+    }
     
 /*  
     // NOBODY WANT TO USE opendir/readdir BECAUSE IT SHOWS HIDDEN FILES AND SPECIAL FILES AND THE LIST IS UNSORTED
@@ -75,7 +90,7 @@ int main(/* int argc, char const* argv[] */)
     tnfs_write(buffer, fh, strlen(buffer));
 
     printf("\n[lseek] Seek 47 bytes from beginning of the file and write TNSF in capitals.\n");
-    tnfs_lseek(fh, SEEK_SET, 47);
+    tnfs_lseek(fh, TNFS_SEEK_SET, 47);
     tnfs_write("TNSF", fh, 4);
     tnfs_close(fh);
 

@@ -1,6 +1,7 @@
 #ifndef __tnfs_h__
 #define __tnfs_h__
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -9,14 +10,20 @@
 #include <time.h>
 #include "netw.h"
 
-// #define DEBUG 1
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define TNFS_PORT 16384		// port 16384 is the standard port for the tnfs protocol
 #define TNFS_MAX_PATH_LEN 256	// maximum length of a complete file path
 #define TNFS_BUFFERSIZE 16384	// 16 kibibytes buffer to send and receive tnfs data
 #define TNFS_SEND_RETRIES 5	// repeat sending commands up to x times before giving up
+#define TNFS_NET_TIMEOUT_MS 2000// timeout in microseconds if the server doesn't respond.
 
-
+#define TNFS_DIRENTRY_DIR       0x01
+#define TNFS_DIRENTRY_HIDDEN    0x02
+#define TNFS_DIRENTRY_SPECIAL   0x04
+ 
 /* structure used by opendirx() and dirx_next() function */
 struct dirx_data {
     uint8_t  handle;  	// the tnfs file handle
@@ -121,11 +128,12 @@ void tnfs_prepareCommand(uint8_t cmd);
 int  tnfs_readdirx(struct dirx_data* data);
 
 /* public functions */
+char* tnfs_get_buffer();
 void tnfs_connect(char* host, bool useTCP);
 void tnfs_disconnect();
-int  tnfs_mount(char* dir, char* username, char* password);
+int  tnfs_mount(const char* dir, const char* username, const char* password);
 int  tnfs_umount();
-int  tnfs_opendir(char* dir);
+int  tnfs_opendir(const char* dir);
 int  tnfs_readdir(char handle, char* dest);
 int  tnfs_opendirx(char* dir, char* pattern, uint8_t diropts, uint8_t sortopts, struct dirx_data* data);
 int  tnfs_closedir(char handle);
@@ -145,6 +153,12 @@ int  tnfs_chmod(uint16_t mode, char* filename);
 int  tnfs_rename(char* source, char* destination);
 int  tnfs_size(uint32_t* kb);
 int  tnfs_free(uint32_t* kb);
+const char* tnfs_error_string(int error);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* __tnfs_h__ */
+
 

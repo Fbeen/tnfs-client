@@ -16,51 +16,53 @@ uint8_t  tnfs_request_id = 0;		// request id increases each new request
 /* sends the allready buffered data to the server and waits for a response */
 int tnfs_sendReceive(int length)
 {
-   int retry = 0;
-   int rlength;
-   
-   /* if we do not get an response from the server we will send the command again for several times */
-   do {
-    	netw_send(tnfs_buffer, length);
+    int retry   = 0;
+    int rlength = 0;
+
+    do {
+        /* send request */
+        netw_send((const uint8_t*)tnfs_buffer, length);
+
 #ifdef DEBUG
-    	printf("sent: ");
-    	for(int i = 0 ; i < length ; i++) {
-    		printf("%hhX ", tnfs_buffer[i]);
-    	}
-    	printf("\n");
+        printf("sent: ");
+        for (int i = 0; i < length; i++) {
+            printf("%02X ", (uint8_t)tnfs_buffer[i]);
+        }
+        printf("\n");
 #endif
-    	rlength = netw_receive(tnfs_buffer, TNFS_BUFFERSIZE);
-   	retry++;
-   }while(rlength == NETW_ERR_TIMEOUT && retry < TNFS_SEND_RETRIES);
-   
-   /* if to many retries we give up */
-   if(retry == TNFS_SEND_RETRIES) {
+
+        /* wait for response */
+        rlength = netw_recv((uint8_t*)tnfs_buffer, TNFS_BUFFERSIZE);
+
+        retry++;
+
+    } while (rlength <= 0 && retry < TNFS_SEND_RETRIES);
+
+    /* no response after retries */
+    if (rlength <= 0) {
 #ifdef DEBUG
-   	printf("Server did not respond, transfer aborted!\n\n");
+        printf("Server did not respond, transfer aborted!\n\n");
 #endif
-   	tnfs_buffer[4] = TNFS_EPROTO; // set the error code in the 5th byte like the server does normally
-   	return TNFS_EPROTO * -1; // -27 Protocol error
-   }
-    
+        tnfs_buffer[4] = TNFS_EPROTO;   // mirror server behaviour
+        return -TNFS_EPROTO;
+    }
+
 #ifdef DEBUG
     printf("recv: ");
-    for(int i = 0 ; i < rlength ; i++) {
-    	printf("%hhX ", tnfs_buffer[i]);
+    for (int i = 0; i < rlength; i++) {
+        printf("%02X ", (uint8_t)tnfs_buffer[i]);
     }
-    printf("\n");
+    printf("\n\n");
 #endif
-    
-    /* check for errors returned by server */
-    if(tnfs_buffer[4] != 0x00 && tnfs_buffer[4] != 0x21) {
+
+    /* check server error code */
+    if (tnfs_buffer[4] != 0x00 && tnfs_buffer[4] != 0x21) {
 #ifdef DEBUG
-    	printf("Server returned error code: %hhX\n\n", tnfs_buffer[4]);
+        printf("Server returned error code: %02X\n\n",
+               (uint8_t)tnfs_buffer[4]);
 #endif
-	return tnfs_buffer[4] * -1; // negative number representing the error code
+        return -tnfs_buffer[4];
     }
-    
-#ifdef DEBUG
-    printf("\n");
-#endif
 
     return rlength;
 }
@@ -74,35 +76,39 @@ void tnfs_prepareCommand(uint8_t cmd)
     tnfs_buffer[3] = cmd;
 }
 
-/* Establish a new session */
-int tnfs_mount(char* dir, char* username, char* password)
+//* Establish a new session */
+int tnfs_mount(const char* dir, const char* username, const char* password)
 {
-    int length = 6;
-    int retry_time;
-    size_t result;
-    
-    tnfs_prepareCommand(0x00);
+    size_t length = 6;
+    uint16_t retry_time = 0;
+
+    tnfs_prepareCommand(0x00); /* TNFS_CMD_MOUNT */
     memcpy(&tnfs_buffer[4], TNFS_PROTOCOL_VERSION, 2);
+
     strcpy(&tnfs_buffer[length], dir);
-    length += strlen(dir)+1;
+    length += strlen(dir) + 1;
+
     strcpy(&tnfs_buffer[length], username);
-    length += strlen(username)+1;
+    length += strlen(username) + 1;
+
     strcpy(&tnfs_buffer[length], password);
-    length += strlen(password)+1;
-    
-    length = tnfs_sendReceive(length);
-    if(tnfs_buffer[4] == 0x00) {
-    	memcpy(&tnfs_session_id, &tnfs_buffer[0], 2); // the session id is needed for all other requests
-    	memcpy(&retry_time, &tnfs_buffer[7], 2); // the minimal retry time determined by the server
-	setTimeoutTime(retry_time); // sets the timeout for waiting on the server response, see netw.c
+    length += strlen(password) + 1;
+
+    length = tnfs_sendReceive((int)length);
+    if (tnfs_buffer[4] == 0x00) {
+        /* session id */
+        memcpy(&tnfs_session_id, &tnfs_buffer[0], 2);
+
+        /* retry time (uint16 little endian) */
+        memcpy(&retry_time, &tnfs_buffer[7], 2);
 
 #ifdef DEBUG
-    	printf("session id: %d \n", tnfs_session_id);
-    	printf("server minimal retry time: %d \n\n", retry_time);
+        printf("session id: %u\n", tnfs_session_id);
+        printf("server minimal retry time: %u\n\n", retry_time);
 #endif
     }
 
-    return tnfs_buffer[4] * -1; // return code
+    return -tnfs_buffer[4];
 }
 
 /* Ends the session */
@@ -115,7 +121,7 @@ int tnfs_umount()
 }
 
 /* Open a directory */
-int tnfs_opendir(char* path)
+int tnfs_opendir(const char* path)
 {
     int length = 4;
 
@@ -475,3 +481,47 @@ int tnfs_free(uint32_t* kb)
     return tnfs_buffer[4] * -1; // Return code
 }
 
+/* Returns human-readable TNFS error string */
+const char* tnfs_error_string(int error)
+{
+    if (error < 0)
+        error = -error;
+
+    switch (error) {
+        case TNFS_OK:           return "OK";
+        case TNFS_EPERM:        return "Operation not permitted";
+        case TNFS_ENOENT:       return "No such file or directory";
+        case TNFS_EIO:          return "I/O error";
+        case TNFS_ENXIO:        return "No such device or address";
+        case TNFS_E2BIG:        return "Argument list too long";
+        case TNFS_EBADF:        return "Bad file number";
+        case TNFS_EAGAIN:       return "Try again";
+        case TNFS_ENOMEM:       return "Out of memory";
+        case TNFS_EACCES:       return "Permission denied";
+        case TNFS_EBUSY:        return "Device or resource busy";
+        case TNFS_EEXIST:       return "File exists";
+        case TNFS_ENOTDIR:      return "Not a directory";
+        case TNFS_EISDIR:       return "Is a directory";
+        case TNFS_EINVAL:       return "Invalid argument";
+        case TNFS_ENFILE:       return "File table overflow";
+        case TNFS_EMFILE:       return "Too many open files";
+        case TNFS_EFBIG:        return "File too large";
+        case TNFS_ENOSPC:       return "No space left on device";
+        case TNFS_ESPIPE:       return "Illegal seek";
+        case TNFS_EROFS:        return "Read-only filesystem";
+        case TNFS_ENAMETOOLONG: return "Filename too long";
+        case TNFS_ENOSYS:       return "Function not implemented";
+        case TNFS_ENOTEMPTY:    return "Directory not empty";
+        case TNFS_ELOOP:        return "Too many symbolic links";
+        case TNFS_ENODATA:      return "No data available";
+        case TNFS_ENOSTR:       return "Out of streams resources";
+        case TNFS_EPROTO:       return "Protocol error";
+        case TNFS_EBADFD:       return "File descriptor in bad state";
+        case TNFS_EUSERS:       return "Too many users";
+        case TNFS_ENOBUFS:      return "No buffer space available";
+        case TNFS_EALREADY:     return "Operation already in progress";
+        case TNFS_ESTALE:       return "Stale TNFS handle";
+        case TNFS_EOF:          return "End of file";
+        default:                return "Unknown TNFS error";
+    }
+}

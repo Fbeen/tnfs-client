@@ -1,43 +1,101 @@
-# NTFS-client c library
+# TNFS client C library
 
-## TNFS - The Trivial Network Filesystem
+## TNFS – The Trivial Network File System
 
-TNFS provides a straightforward protocol that can easily be
-implemented on most 8 or 16 bit systems. It's designed to be a bit better than
-FTP for the purpose of a filesystem, but not as complex as the "big" network
-filesystem protocols like NFS or SMB. It is also designed to be usable
-with 'incomplete' TCP/IP stacks (e.g. ones that only support UDP).
+**TNFS** is a lightweight network filesystem protocol designed for simplicity
+and portability. It is particularly suitable for 8-bit and 16-bit systems,
+embedded devices, and retro computers, while still being usable on modern
+operating systems.
+
+Compared to FTP, TNFS behaves much more like a real filesystem.
+Compared to NFS or SMB, it is intentionally minimal and easy to implement.
+TNFS can operate over both **UDP and TCP**, making it usable even with very
+limited network stacks.
 
 ### More about the TNFS protocol
-For more information about the TNFS protocol direct to the [tnfsd github page from spectrumero](https://github.com/spectrumero/tnfsd). Between the files you will find [tnfs-protocol.md](https://github.com/spectrumero/tnfsd/blob/master/tnfs-protocol.md "tnfs-protocol.md") which explains everything about the TNFS protocol in detail.
 
+For the full protocol specification and reference implementation, see the
+official TNFS server repository:
 
-## Why this NTFS client c library?
+- https://github.com/spectrumero/tnfsd
+- Protocol documentation:
+  https://github.com/spectrumero/tnfsd/blob/master/tnfs-protocol.md
 
-When i heard from the NTFS protocol and Fujinet i searched around the web to find a TNFS client that could run in my Linux environment to test and discover this new protocol. I could find one written in Python but not in C although there is some Fujinet firmware written in c but hell yeah this won't work on a pc without a lot of tweaking. In my experience it is also easier to develop a library on a PC than in an embedded device. This library can be easily transferred to any embedded device that has network capabilities. 
+## Why this TNFS client C library?
 
-## Usage
+When discovering the TNFS protocol (for example through the Fujinet project),
+there were very few TNFS clients available for desktop systems, and none that
+were clean, portable, and written in C.
 
-The code is pretty simple and straight forwards. It consists of three c files and two header files:
+This project was created to:
 
-- **main.c** This is where  a demonstration is given of how to use the TNFS library.
-- **tnfs.c** This file is the actual library with all the tnfs functions available.
-- **netw.c** Consists of network functions such as creating a socket, connecting the client to the server, a send and receive function and some other things. These functions usually look a bit different on an embedded device. For this reason I have kept these functions as separate from the NTFS library as possible.
-- The **header files** tnfs.h and netw.h should be clear. These must be included into your project in order to use the functions in tnfs.c and netw.c respectively.
+- Provide a simple, readable TNFS client implementation in C
+- Run on Linux and Windows
+- Be easily portable to embedded systems
+- Serve as a reference implementation for other TNFS projects
 
-### Setting up a test environment 
+The library is intentionally structured so that:
+- The TNFS protocol logic is platform-independent
+- The networking layer is isolated and replaceable
 
- 1. **Setting up a test server**
- Download the tnfsd server. There are already a compiled Linux and Windows [executable](https://github.com/spectrumero/tnfsd/tree/master/bin) on the github page from spectrumero. Once downloaded, you can open a terminal window and change to the correct directory. In that directory, type in the name of the file, a space and specify the root directory where your clients will end up. Example for Linux:
+This makes it suitable not only for PC testing, but also for use in embedded or
+retro-computing projects (for example: an Atari ST ACSI → TNFS bridge).
 
+## Project structure
+
+- tnfs.c – TNFS protocol implementation (platform independent)
+- netw.c – POSIX networking backend (Linux / Unix)
+- netw_win32.c – Windows networking backend (Winsock)
+- main.c – Demo / test program
+- tnfs.h / netw.h – Public headers
+
+## Supported platforms
+
+- Linux (GCC, POSIX sockets)
+- Windows (MinGW + Winsock)
+
+Designed for easy porting to embedded and retro systems.
+
+## Building
+
+### Linux
+
+```bash
+./build.sh
 ```
-cd ~/Downloads/tnfsd
+
+Binary will be placed in the `build/` directory.
+
+### Windows (MinGW)
+
+```bat
+build_debug.bat
+```
+
+Produces `build\tnfs_test.exe`.
+
+## Test server
+
+Download TNFS server binaries from:
+https://github.com/spectrumero/tnfsd/tree/master/bin
+
+Example:
+
+```bash
 ./tnfsd ~/public
 ```
 
-***~/Downloads/tnfsd*** is the directory that contains the tnfsd executable.
-***~/public*** is the landing page for your clients that connects to your server. 
-You can of course change the directory names to suit your situation.
- 
- 2. **Run the client**
-The client has only been tested on Ubuntu 22.04 but should work fairly easily on other operating systems. A small adjustment in netw.c may be necessary. You can compile and link the program files with gcc. The easiest way is to use build.sh or copy the second and last line of this file and paste them into your terminal.
+## Example usage
+
+See `main.c` for a complete example covering:
+
+- mount / umount
+- directory listing
+- file read/write
+- stat, rename, unlink
+
+## Notes
+
+To port this library to another platform:
+- Replace netw.c
+- Keep tnfs.c unchanged
